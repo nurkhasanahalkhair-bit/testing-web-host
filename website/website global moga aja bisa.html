@@ -1,0 +1,971 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aplikasi Kasir Paling Panjang & Lengkap (Demo)</title>
+<style>
+  /* ------------------------------
+     Gaya dasar — panjang supaya tampak 'lengkap'
+     ------------------------------ */
+  :root{
+    --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#06b6d4;
+    --glass: rgba(255,255,255,0.03);
+    --success: #16a34a; --danger:#ef4444;
+    --radius: 12px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+  body{background:linear-gradient(180deg,#071021 0%, #071829 100%); color:#e6eef6; padding:20px;}
+  header{display:flex; gap:16px; align-items:center; margin-bottom:18px;}
+  .brand{display:flex; gap:12px; align-items:center}
+  .logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#7c3aed);display:flex;align-items:center;justify-content:center;font-weight:700;box-shadow:0 4px 18px rgba(7,15,25,0.6)}
+  h1{font-size:18px;margin:0}
+  p.lead{margin:0;color:var(--muted); font-size:13px}
+  .layout{display:grid;grid-template-columns:360px 1fr 360px; gap:20px; align-items:start;}
+  @media(max-width:1100px){ .layout{grid-template-columns:1fr; } .rightcol{order:3}}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); border-radius:var(--radius); padding:16px; box-shadow:0 8px 30px rgba(2,6,23,0.6); border:1px solid rgba(255,255,255,0.02)}
+  .search{display:flex; gap:8px; margin-bottom:12px}
+  input,select,button,textarea{font-family:inherit}
+  input[type="text"], input[type="number"], select{background:transparent;border:1px solid rgba(255,255,255,0.06); padding:8px 10px; border-radius:8px; color:inherit; width:100%}
+  button{background:var(--accent); border:none; padding:8px 12px; border-radius:8px; cursor:pointer; color:#06121a}
+  .muted{color:var(--muted); font-size:13px}
+  /* produk */
+  .product{display:flex; gap:12px; padding:10px; border-radius:10px; align-items:center; transition:all .15s}
+  .product:hover{transform:translateY(-4px); box-shadow:0 6px 20px rgba(3,6,20,0.6)}
+  .thumb{width:68px;height:68px;border-radius:8px;background:var(--glass); display:flex;align-items:center;justify-content:center; font-weight:600}
+  .pname{font-weight:600}
+  .price{font-weight:700}
+  .small{font-size:12px; color:var(--muted)}
+  /* keranjang */
+  .cart-item{display:flex; gap:10px; align-items:center; padding:8px;border-radius:8px}
+  .qty{display:flex; gap:6px; align-items:center}
+  .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04); color:var(--muted); padding:6px;border-radius:8px; cursor:pointer}
+  /* tabel */
+  table{width:100%; border-collapse:collapse}
+  th,td{padding:8px 6px; text-align:left; border-bottom:1px dashed rgba(255,255,255,0.02); font-size:13px}
+  th{color:var(--muted); font-weight:600}
+  /* footer bar */
+  .checkout-bar{position:sticky; bottom:0; left:0; right:0; display:flex; gap:8px; padding:12px; align-items:center; justify-content:space-between; background:linear-gradient(180deg, rgba(5,10,18,0.6), rgba(5,10,18,0.85)); border-radius:12px; margin-top:12px}
+  .badge{background:rgba(255,255,255,0.03); padding:6px 10px; border-radius:999px; font-weight:600}
+  /* small utilities */
+  .flex{display:flex; gap:10px; align-items:center}
+  .stack{display:flex; flex-direction:column; gap:8px}
+  .hr{height:1px; background:rgba(255,255,255,0.02); margin:8px 0; border-radius:4px}
+  .note{font-size:12px;color:var(--muted)}
+  footer{margin-top:18px;color:var(--muted); font-size:12px; text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">PK</div>
+    <div>
+      <h1>Aplikasi Kasir — Demo Panjang</h1>
+      <p class="lead">Satu file HTML — fitur lengkap untuk latihan & prototipe</p>
+    </div>
+  </div>
+  <div style="margin-left:auto" id="userStatus" class="muted">Belum login</div>
+</header>
+
+<div class="layout">
+  <!-- kiri: produk & search -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <strong>Daftar Produk</strong>
+        <div class="muted" style="font-size:12px">Tambahkan ke keranjang dengan klik tombol +</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="btnLogin" class="btn-ghost">Login Kasir</button>
+        <button id="btnSync" class="btn-ghost">Import Demo</button>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="search">
+      <input id="searchInput" type="text" placeholder="Cari produk, contoh: sabun, 2kg..." />
+      <select id="categoryFilter"><option value="">Semua Kategori</option></select>
+    </div>
+
+    <div id="productList" style="display:flex;flex-direction:column;gap:8px;height:62vh; overflow:auto; padding-right:6px"></div>
+
+    <div class="hr"></div>
+    <div class="note">Tips: klik nama produk untuk melihat detail. Tekan tombol Login untuk menyimpan riwayat atas nama kasir.</div>
+  </div>
+
+  <!-- tengah: detail transaksi dan riwayat -->
+  <div class="card" style="min-height:600px">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div><strong>Transaksi Sekarang</strong><div class="muted" style="font-size:12px">Keranjang, diskon, metode pembayaran</div></div>
+      <div class="muted" id="clock"></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div style="display:flex; gap:12px; align-items:center;">
+      <div style="flex:1">
+        <label class="muted">Nama Pembeli</label>
+        <input id="buyerName" type="text" placeholder="Nama pembeli (opsional)" />
+      </div>
+      <div style="width:160px">
+        <label class="muted">Diskon (%)</label>
+        <input id="discount" type="number" min="0" max="100" value="0" />
+      </div>
+      <div style="width:220px">
+        <label class="muted">Metode Pembayaran</label>
+        <select id="paymentMethod">
+          <option value="tunai">Tunai</option>
+          <option value="qris">QRIS</option>
+          <option value="transfer">Transfer</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div style="display:flex; gap:16px;">
+      <div style="flex:1; max-height:360px; overflow:auto;">
+        <table id="cartTable">
+          <thead><tr><th>Item</th><th>Qty</th><th>Harga</th><th>Sub</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div style="width:320px">
+        <div style="background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent); padding:12px; border-radius:10px">
+          <div style="display:flex; justify-content:space-between"><div class="muted">Subtotal</div><div id="subtotal">Rp 0</div></div>
+          <div style="display:flex; justify-content:space-between"><div class="muted">Diskon</div><div id="discountAmt">Rp 0</div></div>
+          <div style="display:flex; justify-content:space-between"><div class="muted">Pajak (0%)</div><div id="taxAmt">Rp 0</div></div>
+          <div class="hr"></div>
+          <div style="display:flex; justify-content:space-between; align-items:center">
+            <div style="font-weight:700">TOTAL</div>
+            <div id="grandTotal" style="font-weight:900; font-size:18px">Rp 0</div>
+          </div>
+          <div style="margin-top:10px; display:flex; gap:8px">
+            <button id="btnCheckout">Checkout</button>
+            <button id="btnClear" class="btn-ghost">Kosongkan</button>
+            <button id="btnExport" class="btn-ghost">Export CSV</button>
+          </div>
+          <div style="margin-top:10px; display:flex; gap:8px">
+            <button id="btnPrintReceipt" class="btn-ghost">Cetak Struk</button>
+            <button id="btnShowHistory" class="btn-ghost">Tampilkan Riwayat</button>
+          </div>
+        </div>
+        <div style="margin-top:12px" id="lowStockAlert"></div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div id="history" style="display:none;">
+      <strong>Riwayat Transaksi</strong>
+      <div class="muted" style="font-size:12px">Disimpan di IndexedDB — dapat diekspor / dihapus</div>
+      <div style="height:220px; overflow:auto; margin-top:8px">
+        <table id="historyTable">
+          <thead><tr><th>Tgl</th><th>Kasir</th><th>Jumlah</th><th>Metode</th><th></th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:8px">
+        <button id="btnClearHistory" class="btn-ghost">Hapus Semua Riwayat</button>
+        <button id="btnExportHistory" class="btn-ghost">Export Riwayat CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- kanan: admin / stok / detail -->
+  <div class="card rightcol">
+    <strong>Panel Admin & Stok</strong>
+    <div class="hr"></div>
+
+    <div class="stack">
+      <div>
+        <label class="muted">Tambah Produk Baru</label>
+        <input id="newName" type="text" placeholder="Nama produk" />
+        <input id="newPrice" type="number" placeholder="Harga (angka saja)" />
+        <input id="newStock" type="number" placeholder="Stok awal" />
+        <input id="newCategory" type="text" placeholder="Kategori (contoh: Makanan)" />
+        <div style="display:flex; gap:8px; margin-top:6px">
+          <button id="btnAddProduct">Tambah Produk</button>
+          <button id="btnResetDemo" class="btn-ghost">Reset Demo</button>
+        </div>
+      </div>
+
+      <div>
+        <label class="muted">Filter Stock Low</label>
+        <select id="stockFilter"><option value="all">Semua</option><option value="low">Stok &lt;= 5</option></select>
+      </div>
+
+      <div>
+        <strong>Daftar Stok</strong>
+        <div style="height:220px; overflow:auto; margin-top:8px">
+          <table id="stockTable"><thead><tr><th>Produk</th><th>Stock</th><th>Harga</th><th></th></tr></thead><tbody></tbody></table>
+        </div>
+      </div>
+
+      <div>
+        <strong>Import / Export Produk</strong>
+        <div class="muted" style="font-size:12px">Upload JSON produk (format yang sama dengan demo) atau ekspor saat ini.</div>
+        <input id="fileInput" type="file" accept=".json" />
+        <div style="display:flex; gap:8px; margin-top:8px">
+          <button id="btnImport" class="btn-ghost">Import JSON</button>
+          <button id="btnExportProducts" class="btn-ghost">Export JSON</button>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+      <div class="note">Versi demo ini tidak memerlukan server. Untuk integrasi Android (APK) atau backend, Anda dapat bungkus dengan WebView atau gunakan Electron/Capacitor.</div>
+    </div>
+  </div>
+</div>
+
+<footer>Demo Aplikasi Kasir — Semua data disimpan di browser Anda (IndexedDB & localStorage)</footer>
+
+<!-- Modal sederhana -->
+<div id="modal" style="position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.5);">
+  <div style="width:720px; max-width:96%; background:linear-gradient(180deg,#061323,#071829); padding:18px; border-radius:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <strong id="modalTitle">Detail</strong>
+      <button id="modalClose" class="btn-ghost">Tutup</button>
+    </div>
+    <div class="hr"></div>
+    <div id="modalBody" style="max-height:60vh; overflow:auto"></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================
+   JavaScript panjang — fitur lengkap demo kasir
+   ========================================================= */
+
+/* ---------------------------
+   Utilitas format rupiah & id
+   --------------------------- */
+function formatRupiah(n){
+  n = Number(n) || 0;
+  return "Rp " + n.toLocaleString('id-ID');
+}
+function uid(prefix='id'){ return prefix + '_' + Math.random().toString(36).slice(2,9); }
+
+/* ---------------------------
+   Simple localAuth (localStorage)
+   --------------------------- */
+const authKey = 'demo_kasir_user';
+function getUsername(){
+  return localStorage.getItem(authKey) || null;
+}
+function setUsername(name){
+  if(name) localStorage.setItem(authKey, name);
+  else localStorage.removeItem(authKey);
+  renderUser();
+}
+document.getElementById('btnLogin').addEventListener('click', ()=>{
+  const cur = getUsername();
+  if(cur){
+    if(confirm('Logout '+cur+'?')) setUsername(null);
+    return;
+  }
+  const name = prompt('Masukkan nama kasir (contoh: Budi):');
+  if(name) setUsername(name.trim());
+});
+
+/* ---------------------------
+   IndexedDB helper (promisified)
+   --------------------------- */
+const DBNAME = 'KasirDemoDB';
+const DBVER = 1;
+let db = null;
+
+function openDB(){
+  return new Promise((res,rej)=>{
+    if(db) return res(db);
+    const rq = indexedDB.open(DBNAME, DBVER);
+    rq.onupgradeneeded = e=>{
+      const d = e.target.result;
+      if(!d.objectStoreNames.contains('products')){
+        d.createObjectStore('products', {keyPath:'id'});
+      }
+      if(!d.objectStoreNames.contains('transactions')){
+        d.createObjectStore('transactions', {keyPath:'id'});
+      }
+    };
+    rq.onsuccess = e=>{ db = e.target.result; res(db); };
+    rq.onerror = e=> rej(e.target.error);
+  });
+}
+async function put(store, obj){
+  const d = await openDB();
+  return new Promise((res,rej)=>{
+    const tx = d.transaction(store,'readwrite').objectStore(store).put(obj);
+    tx.onsuccess = ()=>res(true); tx.onerror = e=>rej(e);
+  });
+}
+async function getAll(store){
+  const d = await openDB();
+  return new Promise((res,rej)=>{
+    const tx = d.transaction(store,'readonly').objectStore(store).getAll();
+    tx.onsuccess = e=>res(e.target.result);
+    tx.onerror = e=>rej(e);
+  });
+}
+async function getById(store,id){
+  const d = await openDB();
+  return new Promise((res,rej)=>{
+    const tx = d.transaction(store,'readonly').objectStore(store).get(id);
+    tx.onsuccess = e=>res(e.target.result);
+    tx.onerror = e=>rej(e);
+  });
+}
+async function delAll(store){
+  const d = await openDB();
+  return new Promise((res,rej)=>{
+    const tx = d.transaction(store,'readwrite').objectStore(store).clear();
+    tx.onsuccess = ()=>res(true); tx.onerror = e=>rej(e);
+  });
+}
+
+/* ---------------------------
+   In-memory state (cart) & helpers
+   --------------------------- */
+let PRODUCTS = []; // dipakai untuk render cepat
+let CART = []; // {id, qty}
+function findProduct(id){ return PRODUCTS.find(p=>p.id===id); }
+
+function addToCart(id, qty=1){
+  const p = findProduct(id);
+  if(!p) return alert('Produk tidak ditemukan');
+  if(p.stock <= 0) return alert('Stok habis');
+  const existing = CART.find(c=>c.id===id);
+  if(existing){
+    if(p.stock < existing.qty + qty) return alert('Stok tidak cukup');
+    existing.qty += qty;
+  } else {
+    CART.push({id, qty});
+  }
+  renderCart();
+}
+
+/* ---------------------------
+   Demo: data produk awal (banyak)
+   --------------------------- */
+const DEMO_PRODUCTS = [
+  {id:'prd-001', name:'Beras 5kg', price:75000, stock:10, category:'Bahan Pokok', desc:'Beras kualitas baik, cocok untuk keluarga'},
+  {id:'prd-002', name:'Gula Pasir 1kg', price:15000, stock:25, category:'Bahan Pokok', desc:'Gula kristal putih'},
+  {id:'prd-003', name:'Minyak Goreng 2L', price:36000, stock:8, category:'Bahan Pokok', desc:'Minyak sawit rafinasi'},
+  {id:'prd-004', name:'Sabun Mandi', price:6000, stock:40, category:'Kebutuhan Rumah', desc:'Sabun mandi batang wangi'},
+  {id:'prd-005', name:'Sikat Gigi', price:12000, stock:18, category:'Kebutuhan Rumah', desc:'Sikat gigi lembut'},
+  {id:'prd-006', name:'Roti Tawar', price:18000, stock:12, category:'Makanan', desc:'Roti tawar lembut 500g'},
+  {id:'prd-007', name:'Air Mineral 600ml', price:5000, stock:60, category:'Minuman', desc:'Air mineral 0% gula'},
+  {id:'prd-008', name:'Indomie Goreng', price:3500, stock:120, category:'Makanan', desc:'Mie instan rasa goreng'},
+  {id:'prd-009', name:'Kopi Bubuk 200g', price:42000, stock:9, category:'Minuman', desc:'Kopi robusta premium'},
+  {id:'prd-010', name:'Masker 1 pack', price:12000, stock:28, category:'Kesehatan', desc:'Masker 50pcs/dispenser'},
+  // menambahkan baris agar panjang
+  {id:'prd-011', name:'Pasta Gigi', price:22000, stock:30, category:'Kebutuhan Rumah', desc:'Pasta gigi anti plak'},
+  {id:'prd-012', name:'Sereal 500g', price:45000, stock:14, category:'Makanan', desc:'Sarapan sehat dengan gandum utuh'},
+  {id:'prd-013', name:'Telur Ayam 1 kg', price:30000, stock:20, category:'Bahan Pokok', desc:'Telur segar kualitas A'},
+  {id:'prd-014', name:'Susu UHT 1L', price:19000, stock:40, category:'Minuman', desc:'Susu sapi full cream'},
+  {id:'prd-015', name:'Lampu LED 9W', price:25000, stock:7, category:'Elektronik', desc:'Hemat energi, terang'},
+  {id:'prd-016', name:'Kertas A4 1 rim', price:65000, stock:11, category:'Alat Tulis', desc:'Kertas serbaguna 80gsm'},
+  {id:'prd-017', name:'Pulpen Gel', price:8000, stock:34, category:'Alat Tulis', desc:'Pulpen nyaman tulis lancar'},
+  {id:'prd-018', name:'Susu Bubuk 400g', price:72000, stock:6, category:'Minuman', desc:'Susu bubuk untuk keluarga'},
+  {id:'prd-019', name:'Permen Mint', price:3000, stock:90, category:'Makanan', desc:'Permen segar rasa mint'},
+  {id:'prd-020', name:'Hand Sanitizer 250ml', price:25000, stock:22, category:'Kesehatan', desc:'Bunuh kuman dengan cepat'},
+];
+
+/* ---------------------------
+   Render produk
+   --------------------------- */
+const productListEl = document.getElementById('productList');
+const categoryFilterEl = document.getElementById('categoryFilter');
+const searchInputEl = document.getElementById('searchInput');
+
+function buildCategoryOptions(){
+  const cats = Array.from(new Set(PRODUCTS.map(p=>p.category))).sort();
+  categoryFilterEl.innerHTML = '<option value="">Semua Kategori</option>' + cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function renderProducts(){
+  const q = searchInputEl.value.trim().toLowerCase();
+  const cat = categoryFilterEl.value;
+  productListEl.innerHTML = '';
+  const filtered = PRODUCTS.filter(p=>{
+    if(cat && p.category !== cat) return false;
+    if(!q) return true;
+    return p.name.toLowerCase().includes(q) || (p.desc||'').toLowerCase().includes(q);
+  }).sort((a,b)=>b.stock - a.stock);
+  for(const p of filtered){
+    const el = document.createElement('div');
+    el.className = 'product';
+    el.innerHTML = `
+      <div class="thumb">${p.name.split(' ').slice(0,2).map(s=>s[0]).join('')}</div>
+      <div style="flex:1">
+        <div style="display:flex; justify-content:space-between; align-items:center">
+          <div>
+            <div class="pname">${p.name}</div>
+            <div class="small">${p.category} • Stok: ${p.stock}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="price">${formatRupiah(p.price)}</div>
+            <div style="display:flex; gap:6px; margin-top:6px; justify-content:flex-end">
+              <button class="btn-ghost" data-id="${p.id}" data-action="detail">Detail</button>
+              <button data-id="${p.id}" data-action="add">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    productListEl.appendChild(el);
+  }
+}
+
+productListEl.addEventListener('click', (ev)=>{
+  const btn = ev.target.closest('button');
+  if(!btn) return;
+  const id = btn.dataset.id;
+  const action = btn.dataset.action;
+  if(action === 'add') addToCart(id,1);
+  if(action === 'detail') showProductDetail(id);
+});
+searchInputEl.addEventListener('input', ()=> renderProducts());
+categoryFilterEl.addEventListener('change', ()=> renderProducts());
+
+/* ---------------------------
+   Modal
+   --------------------------- */
+const modal = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalBody = document.getElementById('modalBody');
+document.getElementById('modalClose').addEventListener('click', ()=> modal.style.display='none');
+
+function showModal(title, html){
+  modalTitle.textContent = title;
+  modalBody.innerHTML = html;
+  modal.style.display = 'flex';
+}
+
+function showProductDetail(id){
+  const p = findProduct(id);
+  if(!p) return alert('Produk tidak ditemukan');
+  const html = `
+    <div style="display:flex; gap:12px">
+      <div style="width:160px; height:160px; background:rgba(255,255,255,0.02); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:28px">${p.name.split(' ').map(s=>s[0]).slice(0,3).join('')}</div>
+      <div style="flex:1">
+        <h3 style="margin:0">${p.name}</h3>
+        <div class="muted">${p.category} • Stok: <strong>${p.stock}</strong></div>
+        <div style="margin-top:10px">${p.desc || ''}</div>
+        <div style="margin-top:12px; display:flex; gap:8px;">
+          <button id="modalAdd" data-id="${p.id}">Tambah ke Keranjang</button>
+          <button id="modalEdit" class="btn-ghost" data-id="${p.id}">Edit Produk</button>
+        </div>
+      </div>
+    </div>
+  `;
+  showModal('Detail Produk', html);
+  document.getElementById('modalAdd').addEventListener('click', (e)=> { addToCart(e.target.dataset.id,1); modal.style.display='none'; });
+  document.getElementById('modalEdit').addEventListener('click', (e)=>{
+    const id = e.target.dataset.id;
+    const pr = findProduct(id);
+    if(!pr) return;
+    modalBody.innerHTML = `
+      <div style="display:flex; flex-direction:column; gap:8px">
+        <label>Nama</label><input id="edit_name" value="${pr.name}" />
+        <label>Harga</label><input id="edit_price" type="number" value="${pr.price}" />
+        <label>Stok</label><input id="edit_stock" type="number" value="${pr.stock}" />
+        <label>Kategori</label><input id="edit_category" value="${pr.category}" />
+        <label>Deskripsi</label><textarea id="edit_desc">${pr.desc || ''}</textarea>
+        <div style="display:flex; gap:8px">
+          <button id="saveEdit">Simpan</button>
+          <button id="cancelEdit" class="btn-ghost">Batal</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('cancelEdit').addEventListener('click', ()=> modal.style.display='none');
+    document.getElementById('saveEdit').addEventListener('click', async ()=>{
+      pr.name = document.getElementById('edit_name').value.trim();
+      pr.price = Number(document.getElementById('edit_price').value) || 0;
+      pr.stock = Number(document.getElementById('edit_stock').value) || 0;
+      pr.category = document.getElementById('edit_category').value.trim();
+      pr.desc = document.getElementById('edit_desc').value.trim();
+      await put('products', pr);
+      await loadProductsFromDB();
+      modal.style.display='none';
+      renderProducts();
+      renderStockTable();
+    });
+  });
+}
+
+/* ---------------------------
+   Render cart & totals
+   --------------------------- */
+const cartTableBody = document.querySelector('#cartTable tbody');
+const subtotalEl = document.getElementById('subtotal');
+const discountInput = document.getElementById('discount');
+const discountAmtEl = document.getElementById('discountAmt');
+const taxAmtEl = document.getElementById('taxAmt');
+const grandTotalEl = document.getElementById('grandTotal');
+const paymentMethodEl = document.getElementById('paymentMethod');
+
+function renderCart(){
+  cartTableBody.innerHTML = '';
+  let sub = 0;
+  for(const item of CART){
+    const p = findProduct(item.id);
+    if(!p) continue;
+    const row = document.createElement('tr');
+    const subitem = p.price * item.qty;
+    sub += subitem;
+    row.innerHTML = `
+      <td>${p.name}</td>
+      <td>
+        <div class="qty">
+          <button class="btn-ghost" data-id="${p.id}" data-action="dec">-</button>
+          <div style="min-width:30px; text-align:center">${item.qty}</div>
+          <button class="btn-ghost" data-id="${p.id}" data-action="inc">+</button>
+        </div>
+      </td>
+      <td>${formatRupiah(p.price)}</td>
+      <td>${formatRupiah(subitem)}</td>
+      <td><button class="btn-ghost" data-id="${p.id}" data-action="remove">x</button></td>
+    `;
+    cartTableBody.appendChild(row);
+  }
+  subtotalEl.textContent = formatRupiah(sub);
+  const discPercent = Number(discountInput.value) || 0;
+  const discAmt = Math.round(sub * (discPercent/100));
+  discountAmtEl.textContent = formatRupiah(discAmt);
+  const tax = 0; // placeholder
+  taxAmtEl.textContent = formatRupiah(Math.round(sub * tax));
+  const grand = sub - discAmt + Math.round(sub * tax);
+  grandTotalEl.textContent = formatRupiah(grand);
+  // attach cart buttons
+  cartTableBody.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', (e)=>{
+      const id = e.target.dataset.id;
+      const action = e.target.dataset.action;
+      if(action==='inc') changeQty(id, +1);
+      if(action==='dec') changeQty(id, -1);
+      if(action==='remove') removeFromCart(id);
+    });
+  });
+  renderLowStockAlert();
+}
+
+function changeQty(id, delta){
+  const it = CART.find(c=>c.id===id);
+  const p = findProduct(id);
+  if(!it || !p) return;
+  if(delta < 0 && it.qty + delta <= 0){ removeFromCart(id); return; }
+  if(it.qty + delta > p.stock) return alert('Stok tidak cukup');
+  it.qty += delta;
+  renderCart();
+}
+
+function removeFromCart(id){
+  CART = CART.filter(c=>c.id !== id);
+  renderCart();
+}
+
+/* ---------------------------
+   Checkout -> simpan transaksi & kurangi stok
+   --------------------------- */
+document.getElementById('btnCheckout').addEventListener('click', async ()=>{
+  if(!CART.length) return alert('Keranjang kosong');
+  const kasir = getUsername() || 'Guest';
+  const buyer = document.getElementById('buyerName').value.trim() || '-';
+  const payment = paymentMethodEl.value;
+  const subtotal = Number((subtotalEl.textContent || 'Rp 0').replace(/[^0-9]/g,'')) || 0;
+  const disc = Number(discountInput.value) || 0;
+  const discAmt = Math.round(subtotal * disc/100);
+  const total = subtotal - discAmt;
+  const id = uid('txn');
+  const time = new Date().toISOString();
+  const items = CART.map(c=>({...findProduct(c.id), qty:c.qty, sub:c.qty * findProduct(c.id).price}));
+  // validasi stok sekali lagi
+  for(const it of items){
+    const p = findProduct(it.id);
+    if(p.stock < it.qty) return alert(`Stok tidak cukup untuk ${p.name}`);
+  }
+  // kurangi stok
+  for(const it of items){
+    const p = findProduct(it.id);
+    p.stock -= it.qty;
+    await put('products', p);
+  }
+  // simpan transaksi
+  const txn = { id, time, kasir, buyer, payment, subtotal, discPercent:disc, discAmt, total, items };
+  await put('transactions', txn);
+  // kosongkan keranjang
+  CART = [];
+  await loadProductsFromDB();
+  renderCart();
+  renderProducts();
+  renderStockTable();
+  alert('Checkout berhasil — transaksi disimpan.');
+  // tampilkan struk otomatis
+  printReceipt(txn);
+});
+
+/* ---------------------------
+   Cetak struk sederhana
+   --------------------------- */
+function printReceipt(txn){
+  const lines = [];
+  lines.push('TOKO DEMO - STRUK PENJUALAN');
+  lines.push('------------------------------');
+  lines.push('No: ' + txn.id);
+  lines.push('Tanggal: ' + new Date(txn.time).toLocaleString());
+  lines.push('Kasir: ' + txn.kasir);
+  lines.push('Pembeli: ' + txn.buyer);
+  lines.push('------------------------------');
+  txn.items.forEach(it=>{
+    lines.push(`${it.name} x${it.qty}  ${formatRupiah(it.price)}  => ${formatRupiah(it.sub)}`);
+  });
+  lines.push('------------------------------');
+  lines.push('Subtotal: ' + formatRupiah(txn.subtotal));
+  lines.push('Diskon: ' + txn.discPercent + '% (-' + formatRupiah(txn.discAmt) + ')');
+  lines.push('TOTAL: ' + formatRupiah(txn.total));
+  lines.push('Metode: ' + txn.payment);
+  lines.push('');
+  lines.push('Terima kasih atas kunjungan Anda!');
+  // popup print
+  const w = window.open('', '_blank', 'width=400,height=600');
+  const html = `<pre style="font-family:monospace">${lines.join('\n')}</pre>`;
+  w.document.write(`<html><head><title>Struk</title></head><body>${html}</body></html>`);
+  w.document.close();
+  w.focus();
+  // mencoba auto print (bisa diblokir)
+  w.print();
+}
+
+/* ---------------------------
+   Riwayat: render & export & hapus
+   --------------------------- */
+document.getElementById('btnShowHistory').addEventListener('click', ()=> {
+  const el = document.getElementById('history');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  if(el.style.display === 'block') loadAndRenderHistory();
+});
+
+async function loadAndRenderHistory(){
+  const txns = await getAll('transactions');
+  const tbody = document.querySelector('#historyTable tbody');
+  tbody.innerHTML = '';
+  txns.sort((a,b)=>b.time.localeCompare(a.time));
+  for(const t of txns){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${new Date(t.time).toLocaleString()}</td>
+      <td>${t.kasir}</td>
+      <td>${formatRupiah(t.total)}</td>
+      <td>${t.payment}</td>
+      <td><button data-id="${t.id}" class="btn-ghost">Detail</button></td>`;
+    tbody.appendChild(tr);
+  }
+  tbody.querySelectorAll('button').forEach(b=> b.addEventListener('click', async (e)=>{
+    const id = e.target.dataset.id;
+    const t = (await getAll('transactions')).find(x=>x.id===id);
+    showModal('Detail Transaksi', `<pre style="font-family:monospace">${JSON.stringify(t,null,2)}</pre>`);
+  }));
+}
+document.getElementById('btnClearHistory').addEventListener('click', async ()=>{
+  if(!confirm('Hapus semua riwayat transaksi?')) return;
+  await delAll('transactions');
+  loadAndRenderHistory();
+  alert('Riwayat dikosongkan');
+});
+document.getElementById('btnExportHistory').addEventListener('click', async ()=>{
+  const txns = await getAll('transactions');
+  const rows = ['id,time,kasir,buyer,payment,subtotal,discPercent,discAmt,total,itemsCount'];
+  for(const t of txns){
+    rows.push([t.id,t.time,t.kasir,t.buyer,t.payment,t.subtotal,t.discPercent,t.discAmt,t.total, (t.items||[]).length].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  }
+  downloadFile(rows.join('\n'), 'riwayat_transaksi.csv', 'text/csv');
+});
+
+/* ---------------------------
+   Utility: download file
+   --------------------------- */
+function downloadFile(content, filename='data.txt', type='text/plain'){
+  const a = document.createElement('a');
+  const blob = new Blob([content], {type});
+  const url = URL.createObjectURL(blob);
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 5000);
+}
+
+/* ---------------------------
+   Export produk JSON / import
+   --------------------------- */
+document.getElementById('btnExportProducts').addEventListener('click', async ()=>{
+  const ps = await getAll('products');
+  downloadFile(JSON.stringify(ps, null, 2), 'produk_dump.json', 'application/json');
+});
+document.getElementById('btnImport').addEventListener('click', async ()=>{
+  const f = document.getElementById('fileInput').files[0];
+  if(!f) return alert('Pilih file JSON terlebih dahulu');
+  const txt = await f.text();
+  let arr = [];
+  try{ arr = JSON.parse(txt); } catch(e){ return alert('File bukan JSON valid'); }
+  if(!Array.isArray(arr)) return alert('Format JSON harus array produk');
+  for(const p of arr){
+    if(!p.id) p.id = uid('prd');
+    await put('products', p);
+  }
+  await loadProductsFromDB();
+  renderProducts();
+  renderStockTable();
+  alert('Import produk selesai');
+});
+
+/* ---------------------------
+   Render tabel stok
+   --------------------------- */
+const stockTableBody = document.querySelector('#stockTable tbody');
+document.getElementById('stockFilter').addEventListener('change', renderStockTable);
+
+function renderStockTable(){
+  const filter = document.getElementById('stockFilter').value;
+  stockTableBody.innerHTML = '';
+  const arr = PRODUCTS.slice().sort((a,b)=>a.name.localeCompare(b.name));
+  for(const p of arr){
+    if(filter === 'low' && p.stock > 5) continue;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${p.name}</td><td>${p.stock}</td><td>${formatRupiah(p.price)}</td>
+      <td><button class="btn-ghost" data-id="${p.id}" data-action="restock">+ Stok</button></td>`;
+    stockTableBody.appendChild(tr);
+  }
+  stockTableBody.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', async (e)=>{
+      const id = e.target.dataset.id;
+      const p = findProduct(id);
+      if(!p) return;
+      const add = Number(prompt('Jumlah tambah stok:', '5')) || 0;
+      p.stock += add;
+      await put('products', p);
+      await loadProductsFromDB();
+      renderStockTable();
+      renderProducts();
+    });
+  });
+}
+
+/* ---------------------------
+   Add product manual
+   --------------------------- */
+document.getElementById('btnAddProduct').addEventListener('click', async ()=>{
+  const name = document.getElementById('newName').value.trim();
+  const price = Number(document.getElementById('newPrice').value) || 0;
+  const stock = Number(document.getElementById('newStock').value) || 0;
+  const category = document.getElementById('newCategory').value.trim() || 'Umum';
+  if(!name) return alert('Isi nama produk');
+  const p = { id: uid('prd'), name, price, stock, category, desc:'' };
+  await put('products', p);
+  await loadProductsFromDB();
+  renderProducts();
+  renderStockTable();
+  document.getElementById('newName').value='';
+  document.getElementById('newPrice').value='';
+  document.getElementById('newStock').value='';
+  document.getElementById('newCategory').value='';
+});
+
+/* ---------------------------
+   Export CSV (keranjang sekarang)
+   --------------------------- */
+document.getElementById('btnExport').addEventListener('click', ()=>{
+  if(!CART.length) return alert('Keranjang kosong');
+  const rows = ['name,qty,price,sub'];
+  for(const c of CART){
+    const p = findProduct(c.id);
+    rows.push([p.name, c.qty, p.price, p.price*c.qty].join(','));
+  }
+  downloadFile(rows.join('\n'), 'keranjang.csv', 'text/csv');
+});
+
+/* ---------------------------
+   Clear cart
+   --------------------------- */
+document.getElementById('btnClear').addEventListener('click', ()=>{
+  if(!CART.length) return;
+  if(confirm('Kosongkan keranjang?')){ CART = []; renderCart(); }
+});
+
+/* ---------------------------
+   Reset demo data (import demo)
+   --------------------------- */
+document.getElementById('btnResetDemo').addEventListener('click', async ()=>{
+  if(!confirm('Reset produk demo ke data awal? Semua perubahan produk akan hilang.')) return;
+  // kosongkan products store
+  const d = await openDB();
+  const tx = d.transaction('products','readwrite').objectStore('products');
+  tx.clear();
+  tx.transaction?.oncomplete; // noop
+  for(const p of DEMO_PRODUCTS) await put('products', {...p});
+  await loadProductsFromDB();
+  renderProducts();
+  renderStockTable();
+  alert('Reset demo selesai');
+});
+
+/* ---------------------------
+   Import demo quick (btnSync)
+   --------------------------- */
+document.getElementById('btnSync').addEventListener('click', async ()=>{
+  if(!confirm('Muat data demo produk?')) return;
+  for(const p of DEMO_PRODUCTS) await put('products', {...p});
+  await loadProductsFromDB();
+  renderProducts();
+  renderStockTable();
+  alert('Data demo dimuat ke database browser Anda.');
+});
+
+/* ---------------------------
+   Low stock alert
+   --------------------------- */
+function renderLowStockAlert(){
+  const el = document.getElementById('lowStockAlert');
+  const low = PRODUCTS.filter(p=>p.stock > 0 && p.stock <= 5);
+  if(low.length){
+    el.innerHTML = `<div class="badge">Peringatan: ${low.length} produk stok rendah</div>`;
+  } else el.innerHTML = '';
+}
+
+/* ---------------------------
+   Load products from IndexedDB into PRODUCTS[]
+   --------------------------- */
+async function loadProductsFromDB(){
+  PRODUCTS = (await getAll('products')) || [];
+  // jika belum ada produk sama sekali, import demo otomatis
+  if(!PRODUCTS.length){
+    for(const p of DEMO_PRODUCTS) await put('products', {...p});
+    PRODUCTS = (await getAll('products')) || [];
+  }
+  buildCategoryOptions();
+  renderProducts();
+  renderStockTable();
+}
+
+/* ---------------------------
+   Initialisasi DB & data
+   --------------------------- */
+(async function init(){
+  try{
+    await openDB();
+    await loadProductsFromDB();
+    renderCart();
+    renderUserClock();
+    renderUser();
+  }catch(e){
+    console.error('Init error', e);
+  }
+})();
+
+/* ---------------------------
+   Clock & user display
+   --------------------------- */
+function renderUser(){
+  const status = document.getElementById('userStatus');
+  const u = getUsername();
+  status.textContent = u ? `Terhubung sebagai: ${u}` : 'Belum login';
+}
+function renderUserClock(){
+  const clock = document.getElementById('clock');
+  function tick(){ clock.textContent = new Date().toLocaleString(); }
+  tick(); setInterval(tick, 1000);
+}
+
+/* ---------------------------
+   Print receipt button
+   --------------------------- */
+document.getElementById('btnPrintReceipt').addEventListener('click', async ()=>{
+  // print last transaction if ada
+  const txns = await getAll('transactions');
+  if(!txns.length) return alert('Belum ada transaksi untuk dicetak');
+  const last = txns.sort((a,b)=>b.time.localeCompare(a.time))[0];
+  printReceipt(last);
+});
+
+/* ---------------------------
+   Export all data (backup) - as JSON bundle
+   --------------------------- */
+async function exportAllData(){
+  const p = await getAll('products');
+  const t = await getAll('transactions');
+  const bundle = { exportedAt: new Date().toISOString(), products:p, transactions:t };
+  return JSON.stringify(bundle, null, 2);
+}
+
+/* ---------------------------
+   Utility: Reset all database (for dev)
+   --------------------------- */
+window.resetAllData = async function(){
+  if(!confirm('Reset seluruh database demo (produk & transaksi)?')) return;
+  const d = await openDB();
+  const tx = d.transaction(['products','transactions'], 'readwrite');
+  tx.objectStore('products').clear();
+  tx.objectStore('transactions').clear();
+  tx.oncomplete = async ()=>{ await loadProductsFromDB(); renderCart(); renderStockTable(); alert('Semua data direset'); };
+}
+
+/* ---------------------------
+   File input drag/drop & small UX
+   --------------------------- */
+document.addEventListener('keydown', (e)=> {
+  if(e.key === 'F9'){ // contoh hotkey: F9 export all
+    exportAllData().then(data=> downloadFile(data, 'backup_kasir.json', 'application/json'));
+  }
+});
+
+/* ---------------------------
+   Simple service worker register (opsional)
+   --------------------------- */
+if('serviceWorker' in navigator){
+  try{
+    navigator.serviceWorker.register('./service-worker.js').catch(()=>{/* ignore - file tidak wajib ada */});
+  }catch(e){}
+}
+
+/* ---------------------------
+   Extra: fungsi bantu download struk PDF via canvas (opsional)
+   --------------------------- */
+async function generateReceiptPdf(txn){
+  // Placeholder: membuat string dan download .txt. Untuk PDF nyata gunakan library seperti jsPDF.
+  const txt = `STRUK PENJUALAN\nNO: ${txn.id}\nTanggal: ${txn.time}\n...\n#ITEMS\n` + txn.items.map(i=>`${i.name} x${i.qty} => ${i.sub}`).join('\n');
+  downloadFile(txt, 'struk_'+txn.id+'.txt', 'text/plain');
+}
+
+/* ---------------------------
+   Tombol export lebih panjang
+   --------------------------- */
+document.getElementById('btnExportHistory').addEventListener('click', async ()=>{
+  const t = await getAll('transactions');
+  downloadFile(JSON.stringify(t,null,2), 'riwayat_full.json', 'application/json');
+});
+
+/* ---------------------------
+   Tombol reset demo (quick)
+   --------------------------- */
+document.getElementById('btnResetDemo').addEventListener('click', async ()=>{
+  // handler sudah terpasang sebelumnya
+});
+
+/* ---------------------------
+   Lain-lain: show modal on load with petunjuk
+   --------------------------- */
+window.addEventListener('load', ()=>{
+  // munculkan modal kecil cuma sekali
+  if(!localStorage.getItem('seen_help')){
+    showModal('Panduan Singkat', `<div style="display:flex;flex-direction:column;gap:8px">
+      <div>1. Klik <strong>Import Demo</strong> untuk memuat produk.</div>
+      <div>2. Klik + pada produk untuk menambah ke keranjang.</div>
+      <div>3. Atur diskon & metode pembayaran lalu <strong>Checkout</strong>.</div>
+      <div>4. Riwayat disimpan di IndexedDB, dapat di-export.</div>
+      <div style="margin-top:8px"><button id="gotit">Mengerti</button></div>
+    </div>`);
+    document.getElementById('gotit').addEventListener('click', ()=>{ localStorage.setItem('seen_help','1'); modal.style.display='none'; });
+  }
+});
+</script>
+</body>
+</html>
